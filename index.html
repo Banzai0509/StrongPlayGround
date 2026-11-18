@@ -459,7 +459,12 @@ function bgmTick(){if(!bgm||!AC||AC.state!=='running')return;const night=NF>.5,s
     if(k===0||k===4)bv('triangle',c[0],t,spb*3.6,.12,bgm.out);
     if(night){if(k===0)c[1].forEach(m=>bv('sine',m,t,spb*7.5,.035,bgm.dry))}else if(k%2===0)bv('square',c[1][(k>>1)%3],t,spb*1.2,.016,bgm.dry);
     bgm.next+=spb;bgm.step++}}
-document.addEventListener('visibilitychange',()=>{if(AC&&!document.hidden&&AC.state==='suspended')AC.resume()});
+/* 화면이 꺼지거나 다른 앱/탭으로 넘어가면 소리 정지, 돌아오면 이어서 재생 */
+function audioPause(){if(AC&&AC.state==='running'){try{AC.suspend().catch(()=>{})}catch(e){}}}
+function audioWake(){if(AC&&!document.hidden&&AC.state!=='running'&&AC.state!=='closed'){try{AC.resume().catch(()=>{})}catch(e){}}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)audioPause();else audioWake()});
+addEventListener('pagehide',audioPause);addEventListener('pageshow',audioWake);addEventListener('focus',audioWake);
+addEventListener('pointerdown',audioWake,{passive:true});
 function setMute(){$('#mute').textContent=muted?'소리 끔':'소리 켬';$('#bgmBtn').textContent=bgmOn?'배경음악 켬':'배경음악 끔';bgmVol()}setMute();
 $('#bgmBtn').addEventListener('click',()=>{bgmOn=!bgmOn;store.set('bgm',bgmOn);setMute();audioOn();bgmStart()});
 $('#mute').addEventListener('click',()=>{muted=!muted;store.set('muted',muted);setMute()});
