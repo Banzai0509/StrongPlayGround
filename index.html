@@ -40,8 +40,11 @@ button.chip{font-family:inherit;cursor:pointer}
 #meter .bar{height:14px}#meter .bar i{background:var(--red)}
 #joy{position:fixed;left:calc(env(safe-area-inset-left) + 22px);bottom:calc(env(safe-area-inset-bottom) + 26px);width:132px;height:132px;border-radius:50%;background:rgba(255,253,245,.35);border:3px solid rgba(22,32,43,.55);pointer-events:auto;touch-action:none;display:none}
 #knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px;border-radius:50%;background:var(--yel);border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
-#mini{position:fixed;left:calc(env(safe-area-inset-left) + 12px);bottom:calc(env(safe-area-inset-bottom) + 54px);width:170px;height:170px;border-radius:18px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#7aa84c}
-@media (pointer:coarse){#joy{display:block}#keys{display:none}#mini{width:124px;height:124px;bottom:calc(env(safe-area-inset-bottom) + 172px);left:calc(env(safe-area-inset-left) + 26px)}}
+:root{--mw:170px;--ml:calc(env(safe-area-inset-left) + 12px);--mb:calc(env(safe-area-inset-bottom) + 54px)}
+#mini{position:fixed;left:var(--ml);bottom:var(--mb);width:var(--mw);height:var(--mw);border-radius:18px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#7aa84c}
+#miniBtn{position:fixed;left:var(--ml);bottom:calc(var(--mb) + var(--mw) + 6px);min-height:34px;padding:3px 10px;font-size:13px}
+.mini-off #mini{display:none}.mini-off #miniBtn{bottom:var(--mb)}
+@media (pointer:coarse){#joy{display:block}#keys{display:none}:root{--mw:124px;--mb:calc(env(safe-area-inset-bottom) + 172px);--ml:calc(env(safe-area-inset-left) + 26px)}}
 #keys{position:fixed;left:calc(env(safe-area-inset-left) + 12px);bottom:calc(env(safe-area-inset-bottom) + 14px);font-weight:400;font-size:13px}
 #toast{position:fixed;left:50%;top:21%;transform:translate(-50%,-8px);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;width:min(92vw,560px)}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -129,6 +132,7 @@ label.l{display:block;font-weight:900;margin:0 0 5px}
   <div id="meter" hidden><span id="mL"></span><div class="bar"><i id="mB"></i></div></div>
   <div id="joy"><div id="knob"></div></div>
   <canvas id="mini" width="300" height="300" aria-label="미니맵"></canvas>
+  <button class="chip" id="miniBtn" type="button">지도 접기</button>
   <div class="chip" id="keys">WASD 이동 · 스페이스 점프 · E 타기/행동 · Q 내리기 · 드래그로 시점</div>
 </div>
 <div id="acts"></div>
@@ -154,7 +158,7 @@ label.l{display:block;font-weight:900;margin:0 0 5px}
 <div class="ov" id="setPanel" hidden>
   <div class="card pnl">
     <h1 style="font-size:32px">설정</h1>
-    <div class="setb"><button class="act g" id="chBtn" type="button">캐릭터 바꾸기</button><button class="act g" id="bgmBtn" type="button">배경음악 켬</button><button class="act g" id="mute" type="button">소리 켬</button></div>
+    <div class="setb"><button class="act g" id="chBtn" type="button">캐릭터 바꾸기</button><button class="act g" id="miniSet" type="button">미니맵 숨기기</button><button class="act g" id="bgmBtn" type="button">배경음악 켬</button><button class="act g" id="mute" type="button">소리 켬</button></div>
     <button class="act p" id="sClose" type="button" style="width:100%;margin-top:12px">닫기</button>
   </div>
 </div>
@@ -744,8 +748,11 @@ function camUpdate(dt){
 /* ---------- HUD per frame ---------- */
 let btnKey='';const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const MINI=[[SW.x,SW.z,'그네'],[TW.x,TW.z,'미끄럼틀'],[MB.x,MB.z,'구름다리'],[JG.x,JG.z,'정글짐'],[WB.x,WB.z,'늑목'],[GL.x,GL.z,'지구본'],[SS.x,SS.z,'시소'],[-8,14,'기록판'],...BENCHES.map(b=>[b.x,b.z,''])];
-const mc=$('#mini'),mg=mc.getContext('2d');let mFrame=0;
-function minimap(){if(++mFrame%3)return;const W=300,c=W/2,k=W/2/19.5;mg.clearRect(0,0,W,W);
+const mc=$('#mini'),mg=mc.getContext('2d');let mFrame=0,miniOn=store.get('mini',true)!==false;
+function miniUI(){document.body.classList.toggle('mini-off',!miniOn);$('#miniBtn').textContent=miniOn?'지도 접기':'지도 보기';$('#miniBtn').setAttribute('aria-pressed',String(miniOn));$('#miniSet').textContent=miniOn?'미니맵 숨기기':'미니맵 보기'}
+function miniToggle(){miniOn=!miniOn;store.set('mini',miniOn);miniUI()}
+$('#miniBtn').addEventListener('click',miniToggle);$('#miniSet').addEventListener('click',miniToggle);miniUI();
+function minimap(){if(!miniOn||++mFrame%3)return;const W=300,c=W/2,k=W/2/19.5;mg.clearRect(0,0,W,W);
   mg.fillStyle=SEA?'#'+SEA.grass.toString(16).padStart(6,'0'):'#7aa84c';mg.fillRect(0,0,W,W);mg.fillStyle=SEA?'#'+SEA.sand.toString(16).padStart(6,'0'):'#cfae7a';mg.beginPath();mg.arc(c,c,23*k,0,PI*2);mg.fill();
   mg.textAlign='center';mg.textBaseline='middle';
   for(const[x,z,n]of MINI){const px=c+x*k,py=c+z*k;if(!n){mg.fillStyle='#8a5a2e';mg.fillRect(px-7,py-4,14,8);continue}mg.fillStyle='#d7372b';mg.beginPath();mg.arc(px,py,7,0,PI*2);mg.fill();mg.strokeStyle='#16202b';mg.lineWidth=2.5;mg.stroke();
